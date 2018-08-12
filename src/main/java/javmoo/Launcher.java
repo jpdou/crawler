@@ -15,7 +15,7 @@ public class Launcher {
         ArrayList<Process> processes = new ArrayList<Process>();
         ArrayList<Thread> threads = new ArrayList<Thread>();
 
-        Task task = new Task(10);
+        Task task = new Task(100);
 
         long startAt = System.currentTimeMillis();
         long finishedAt;
@@ -32,12 +32,6 @@ public class Launcher {
         }
 
         while(!processes.isEmpty()) {
-            try {
-                Thread.sleep(60000); // 暂停一分钟
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
             for (Process p : processes) {
                 if (p.isFinished()) {
                     Thread t = p.getThread();
@@ -47,6 +41,11 @@ public class Launcher {
                 }
             }
             System.out.println("Left " + processes.size() + " process(es). ");
+            try {
+                Thread.sleep(60000); // 暂停一分钟
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
         finishedAt = System.currentTimeMillis();
 

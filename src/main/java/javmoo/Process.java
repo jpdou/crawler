@@ -2,7 +2,9 @@ package javmoo;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpHost;
 import org.apache.http.HttpStatus;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.impl.client.*;
 import org.apache.http.client.methods.*;
 import org.apache.http.util.EntityUtils;
@@ -21,11 +23,17 @@ public class Process implements Runnable {
     private Thread thread;
     private boolean finished = false;
 
+    private RequestConfig requestConfig;
+
+    private IpManager ipManager;
+
     Process(Task task, String baseUrl, String mediaFolder) {
         this.task = task;
 
         this.baseUrl = baseUrl;
         this.mediaFolder = mediaFolder;
+
+        this.ipManager = new IpManager();
     }
 
     public void run()
@@ -65,9 +73,11 @@ public class Process implements Runnable {
             System.out.println("Start fetch page " + p + " ...");
             String url = this.baseUrl + "page/" + p;
 
-            System.out.println(url);
+            System.out.println("Url: " + url);
 
             HttpGet httpget = new HttpGet(url);
+            httpget.setConfig(this.getRequestConfig(true, true));
+            httpget.setHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36");
 
             try {
                 CloseableHttpResponse response = httpclient.execute(httpget);
@@ -119,6 +129,7 @@ public class Process implements Runnable {
     public void parseVideoDetails(Video video, CloseableHttpClient httpclient)
     {
         HttpGet httpget = new HttpGet(this.baseUrl + video.getOriginHref());
+        httpget.setConfig(this.getRequestConfig(true, true));
         try {
             CloseableHttpResponse response = httpclient.execute(httpget);
 
@@ -150,9 +161,8 @@ public class Process implements Runnable {
                 video.setPoster(path);
 
                 video.save();
-                System.out.println("before load : " + video.getIdentifier());
+
                 video.load(video.getIdentifier(), "identifier");
-                System.out.println("video id = " + video.getId());
 
                 Element avatarContainer = container.getElementById("avatar-waterfall");
                 if (avatarContainer != null) {
@@ -161,7 +171,6 @@ public class Process implements Runnable {
                         String name = box.select(">span").text();
 
                         actress = ActressManager.getActress(name);
-                        System.out.println(actress);
                         if (actress == null) {
                             System.out.println("Actress is not existed: " + name);
                             actress = new Actress();
@@ -207,7 +216,7 @@ public class Process implements Runnable {
                 }
             }
         } catch (Exception e) {
-            System.out.println("Parse Video Details Error : " + e.getMessage() + e.getLocalizedMessage());
+            System.out.println("Parse Video Details Error : " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -221,6 +230,7 @@ public class Process implements Runnable {
         }
 
         HttpGet httpget = new HttpGet(url);
+        httpget.setConfig(this.getRequestConfig(false, false));
         try {
             CloseableHttpResponse response = httpclient.execute(httpget);
 
@@ -245,5 +255,23 @@ public class Process implements Runnable {
     {
         File f = new File(path);
         return f.exists();
+    }
+
+    private RequestConfig getRequestConfig(Boolean refresh, Boolean useProxy)
+    {
+        if (this.requestConfig == null || refresh) {
+            RequestConfig.Builder builder = RequestConfig.custom()
+                    .setSocketTimeout(2000)
+                    .setConnectTimeout(2000);
+
+            if (useProxy) {
+                String ip = this.ipManager.next();
+                String[] ipWithPort = ip.split(":");
+                HttpHost proxy = new HttpHost(ipWithPort[0], Integer.parseInt(ipWithPort[1]));
+                builder.setProxy(proxy);
+            }
+            this.requestConfig = builder.build();
+        }
+        return requestConfig;
     }
 }

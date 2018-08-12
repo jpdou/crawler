@@ -9,6 +9,7 @@ abstract class Resource {
     final static int TYPE_STRING = 1;
     final static int TYPE_INT = 2;
     final static int TYPE_DECIMAL = 3;
+    final static int TYPE_UNKNOWN = 1000;
 
     Statement stmt;
 
@@ -31,21 +32,6 @@ abstract class Resource {
 
     public Object getData(String key)
     {
-//        Object value = this.data.get(key);
-//        if (value == null) {
-//            int type = this.fieldTypes.get(key);
-//            switch (type) {
-//                case Resource.TYPE_STRING:
-//                    value = "";
-//                    break;
-//                case Resource.TYPE_INT:
-//                case Resource.TYPE_DECIMAL:
-//                    value = 0;
-//                    break;
-//                default:
-//                    System.out.println("Unrecognized filed type : " + type);
-//            }
-//        }
         return this.data.get(key);
     }
 
@@ -76,7 +62,7 @@ abstract class Resource {
         try {
             this.beforeSave();
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            System.out.println("Before save Exception: " + e.getMessage());
             e.printStackTrace();
             return;
         }
@@ -86,7 +72,10 @@ abstract class Resource {
         ArrayList<String> values = new ArrayList<String>();
         String value = null;
         for(String field : this.data.keySet()) {
-            int type = this.fieldTypes.get(field);
+            Integer type = this.fieldTypes.get(field);
+            if (type == null) {
+                type = TYPE_UNKNOWN;
+            }
             switch (type) {
                 case TYPE_STRING:
                     value = "'" + this.data.get(field) + "'";
@@ -96,7 +85,7 @@ abstract class Resource {
                     value = this.data.get(field).toString();
                     break;
                 default:
-                    System.out.println("Unrecognized filed type : " + type);
+                    System.out.println("Unrecognized field type : " + type + ", field : " + field);
                     break;
             }
             if (value != null) {
@@ -124,7 +113,7 @@ abstract class Resource {
             this.stmt.execute(sql);
         } catch (SQLException e) {
             System.out.println("Save failed. " + e.getMessage());
-            System.out.println(sql);
+            System.out.println("SQL: " + sql);
             e.printStackTrace();
         }
     }

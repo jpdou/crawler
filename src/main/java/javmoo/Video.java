@@ -91,9 +91,10 @@ public class Video extends Resource {
         sql = sql.replace("{values}", _values);
 
         try {
-            System.out.println(sql);
             this.stmt.execute(sql);
         } catch (Exception e) {
+            System.out.println("SQL error: " + e.getMessage());
+            System.out.println("SQL: " + sql);
             e.printStackTrace();
         }
     }

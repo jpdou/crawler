@@ -24,10 +24,10 @@ public class Conn {
             stmt = conn.createStatement();
         }catch(SQLException se){
             // 处理 JDBC 错误
-            System.out.println(se.getMessage());
+            System.out.println("Connect MySQL failed. " + se.getMessage());
         }catch(Exception e){
             // 处理 Class.forName 错误
-            System.out.println(e.getMessage());
+            System.out.println("Connect MySQL failed2. " + e.getMessage());
         }
     }
 

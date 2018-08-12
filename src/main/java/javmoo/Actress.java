@@ -16,6 +16,7 @@ public class Actress extends Resource {
     public void defineFieldsType() {
         this.fieldTypes.put("id", Resource.TYPE_INT);
         this.fieldTypes.put("name", Resource.TYPE_STRING);
+        this.fieldTypes.put("avatar", Resource.TYPE_STRING);
         this.fieldTypes.put("home_page", Resource.TYPE_STRING);
         this.fieldTypes.put("video_count", Resource.TYPE_INT);
         this.fieldTypes.put("office_id", Resource.TYPE_INT);
@@ -75,13 +76,15 @@ public class Actress extends Resource {
                 "WHERE video.identifier = '" + identifier +
                 "' LIMIT 1";
         try {
-            System.out.println(sql);
+
             ResultSet rs = this.stmt.executeQuery(sql);
             if (rs.next()) {
                 count = rs.getInt("count(*)");
             }
             rs.close();
         } catch (Exception e) {
+            System.out.println("SQL Error: " + e.getMessage());
+            System.out.println("SQL: " + sql);
             e.printStackTrace();
         }
         return count > 0;
@@ -114,10 +117,12 @@ public class Actress extends Resource {
                 ", " + video.getId() +
                 ")";
         try {
-            System.out.println(sql);
+
             this.stmt.execute(sql);
         } catch (Exception e) {
             System.out.println("Error in SQL: " + e.getMessage());
+            System.out.println("SQL: " + sql);
+            e.printStackTrace();
         }
     }
 
@@ -142,11 +147,11 @@ public class Actress extends Resource {
     }
 
     public String getHomePage() {
-        return (String) this.data.get("homePage");
+        return (String) this.data.get("home_page");
     }
 
     public void setHomePage(String homePage) {
-        this.data.put("homePage", homePage);
+        this.data.put("home_page", homePage);
     }
 
     public int getVideoCount() {
