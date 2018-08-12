@@ -7,15 +7,18 @@ public class Launcher {
 
     public static void main(String[] args)
     {
-        int concurrent = 20;
+        int concurrent = 1;
 
         String baseUrl = "https://javmoo.com/cn/";
-        String mediaFolder = "C:/Users/jp.dou/IdeaProjects/Crawler/src/main/resources/";
+        String mediaFolder = "C:/var/www/demo/media/";
 
         ArrayList<Process> processes = new ArrayList<Process>();
         ArrayList<Thread> threads = new ArrayList<Thread>();
 
-        Task task = new Task(100);
+        Task task = new Task(10);
+
+        long startAt = System.currentTimeMillis();
+        long finishedAt;
 
         for(int i = 0; i < concurrent; i++) {
             Process p = new Process(task, baseUrl, mediaFolder);
@@ -45,6 +48,9 @@ public class Launcher {
             }
             System.out.println("Left " + processes.size() + " process(es). ");
         }
+        finishedAt = System.currentTimeMillis();
+
+        System.out.println("Spent " + (finishedAt - startAt) / (1000 * 60 ) + " mins.");
     }
 
 }

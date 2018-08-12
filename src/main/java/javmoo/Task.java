@@ -8,7 +8,7 @@ public class Task {
     Task(int count)
     {
         this.count = count;
-        this.current = 1;
+        this.current = 0;
     }
 
     public int getNext() {

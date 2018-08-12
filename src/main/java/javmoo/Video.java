@@ -5,13 +5,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 
 public class Video extends Resource {
-    private int id;
-    private String originHref;
-    private String title;
-    private String identifier;
-    private String thumbnail;
-    private String poster;
-    private String date;
 
     private ArrayList<Integer> actressIds;
 
@@ -20,32 +13,19 @@ public class Video extends Resource {
         this.table = "video";
     }
 
-    public void save()
-    {
-        String sql;
-        if (this.isExisted(this.getIdentifier(), "identifier")) {
-            sql = "update " + table + " set origin_href = '" + this.getOriginHref() +
-                    "', title = '" + this.getTitle() +
-                    "', thumbnail = '" + this.getThumbnail() +
-                    "', poster = '" + this.poster +
-                    "', date = '" + this.getDate() +
-                    "' where identifier = '" + this.getIdentifier() + "'";
-        } else {
-            sql = "insert into " + table + " (origin_href, title, identifier, thumbnail, poster, date) " +
-                    "values (" +
-                    "'" + this.getOriginHref() +
-                    "', '" + this.getTitle() +
-                    "', '" + this.getIdentifier() +
-                    "', '" + this.getThumbnail() +
-                    "', '" + this.getPoster() +
-                    "', '" + this.getDate() +
-                    "')";
-        }
+    public void defineFieldsType() {
+        this.fieldTypes.put("id", Resource.TYPE_INT);
+        this.fieldTypes.put("origin_href", Resource.TYPE_STRING);
+        this.fieldTypes.put("title", Resource.TYPE_STRING);
+        this.fieldTypes.put("thumbnail", Resource.TYPE_STRING);
+        this.fieldTypes.put("poster", Resource.TYPE_STRING);
+        this.fieldTypes.put("date", Resource.TYPE_STRING);
+        this.fieldTypes.put("identifier", Resource.TYPE_STRING);
+    }
 
-        try {
-            this.stmt.execute(sql);
-        } catch (Exception e) {
-            e.printStackTrace();
+    public void beforeSave() throws Exception {
+        if (!this.data.containsKey("identifier")) {
+            throw new Exception("Require identifier when saving video");
         }
     }
 
@@ -73,69 +53,104 @@ public class Video extends Resource {
     {
         try {
             if (rs.next()) {
-                this.id = rs.getInt("id");
-                this.identifier = rs.getString("identifier");
-                this.poster = rs.getString("poster");
-                this.thumbnail = rs.getString("thumbnail");
-                this.title = rs.getString("title");
-                this.date = rs.getString("date");
-                this.originHref = rs.getString("origin_href");
+                this.setId(rs.getInt("id"));
+                this.setIdentifier(rs.getString("identifier"));
+                this.setPoster(rs.getString("poster"));
+                this.setThumbnail(rs.getString("thumbnail"));
+                this.setTitle(rs.getString("title"));
+                this.setDate(rs.getString("date"));
+                this.setOriginHref(rs.getString("origin_href"));
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-    public int getId() {
-        return id;
+    public void removeAllSample()
+    {
+        String sql = "DELETE FROM video_sample WHERE video_id = " + this.getId();
+        try {
+            this.stmt.execute(sql);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void addSamples(ArrayList<String> srcs)
+    {
+        String sql = "INSERT INTO video_sample (video_id, src) VALUES {values} ";
+
+        ArrayList<String> values = new ArrayList<String>();
+
+        for(String scr : srcs) {
+            values.add("(" + this.getId() + ", '" + scr + "')");
+        }
+
+        String _values = String.join(",", values);
+
+        sql = sql.replace("{values}", _values);
+
+        try {
+            System.out.println(sql);
+            this.stmt.execute(sql);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void setId(int id)
+    {
+        this.data.put("id", id);
     }
 
     public String getOriginHref() {
-        return originHref;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public String getIdentifier() {
-        return identifier;
-    }
-
-    public String getThumbnail() {
-        return thumbnail;
-    }
-
-    public String getPoster() {
-        return poster;
-    }
-
-    public String getDate() {
-        return date;
+        return (String) this.data.get("origin_href");
     }
 
     public void setOriginHref(String originHref) {
-        this.originHref = originHref;
+        this.data.put("origin_href", originHref);
+    }
+
+    public String getTitle() {
+        return (String) this.data.get("title");
     }
 
     public void setTitle(String title) {
-        this.title = title;
+        this.data.put("title", title);
+    }
+
+    public String getIdentifier() {
+        return (String) this.data.get("identifier");
     }
 
     public void setIdentifier(String identifier) {
-        this.identifier = identifier.trim();
+        this.data.put("identifier", identifier);
+    }
+
+    public String getThumbnail() {
+        return (String) this.data.get("thumbnail");
     }
 
     public void setThumbnail(String thumbnail) {
-        this.thumbnail = thumbnail;
+        this.data.put("thumbnail", thumbnail);
+    }
+
+    public String getPoster() {
+        return (String) this.data.get("poster");
     }
 
     public void setPoster(String poster) {
-        this.poster = poster;
+        this.data.put("poster", poster);
+    }
+
+    public String getDate() {
+        return (String) this.data.get("date");
     }
 
     public void setDate(String date) {
-        this.date = date;
+        if (date != null && date.length() >= 10) {
+            this.data.put("date", date);
+        }
     }
 
 }

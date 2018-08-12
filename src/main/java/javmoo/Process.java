@@ -64,6 +64,9 @@ public class Process implements Runnable {
             }
             System.out.println("Start fetch page " + p + " ...");
             String url = this.baseUrl + "page/" + p;
+
+            System.out.println(url);
+
             HttpGet httpget = new HttpGet(url);
 
             try {
@@ -90,18 +93,23 @@ public class Process implements Runnable {
                     String date = element.select("date").last().html();
 
                     Video video = new Video();
-                    video.setIdentifier(identifier);;
-                    video.setDate(date);
-                    video.setOriginHref(originHref);
-                    video.setThumbnail(thumbnail);
-                    if (!video.isExisted(video.getIdentifier(), "identifier")) {
+
+                    video.load(identifier, "identifier");
+
+                    if (video.getId() == 0) {   // video 不存在
+                        video.setIdentifier(identifier);
+                        video.setDate(date);
+                        video.setOriginHref(originHref);
+                        video.setThumbnail(thumbnail);
                         video.save();
+                        video.load(identifier, "identifier");
                     }
                     videos.add(video);
                 }
                 response.close();
             } catch (Exception e) {
                 System.out.println("Parse Video From List Error : " + e.getMessage());
+                e.printStackTrace();
             }
         }
 
@@ -122,52 +130,96 @@ public class Process implements Runnable {
 
                 Element container = doc.body().select(">.container").first();
 
+                // title
                 String title = container.select("h3").text();
-                String path = "video/thumbnail/" + video.getIdentifier() + this.getFileExtensionFromUrl(video.getThumbnail());
-                this.downloadFile(httpclient, video.getThumbnail(), this.mediaFolder + path);
+                video.setTitle(title);
 
+                // thumbnail
+                String path = "video/thumbnail/" + video.getIdentifier() + this.getFileExtensionFromUrl(video.getThumbnail());
+                if (!this.isFileExisted(this.mediaFolder + path)) {
+                    this.downloadFile(httpclient, video.getThumbnail(), this.mediaFolder + path);
+                }
                 video.setThumbnail(path);
 
+                // poster
                 String posterUrl = container.select(".movie>div.screencap>a>img").attr("src");
                 path = "video/poster/" + video.getIdentifier() + this.getFileExtensionFromUrl(posterUrl);
-                this.downloadFile(httpclient, posterUrl, this.mediaFolder + path);
-
-                video.setTitle(title);
+                if (!this.isFileExisted(this.mediaFolder + path)) {
+                    this.downloadFile(httpclient, posterUrl, this.mediaFolder + path);
+                }
                 video.setPoster(path);
 
                 video.save();
+                System.out.println("before load : " + video.getIdentifier());
+                video.load(video.getIdentifier(), "identifier");
+                System.out.println("video id = " + video.getId());
 
-                Actress actress = new Actress();
                 Element avatarContainer = container.getElementById("avatar-waterfall");
                 if (avatarContainer != null) {
+                    Actress actress;
                     for (Element box : avatarContainer.children()) {
                         String name = box.select(">span").text();
 
-                        if (actress.isExisted(name, "name")) {
-                            if (actress.getVideoIds())
-                        } else {
+                        actress = ActressManager.getActress(name);
+                        System.out.println(actress);
+                        if (actress == null) {
+                            System.out.println("Actress is not existed: " + name);
+                            actress = new Actress();
                             String homePage = avatarContainer.select("a").attr("href");
                             String avatarUrl = avatarContainer.select("img").attr("src");
                             path = "actress/avatar/" + name + this.getFileExtensionFromUrl(avatarUrl);
-                            this.downloadFile(httpclient, avatarUrl, this.mediaFolder + path);
+                            if (this.isFileExisted(this.mediaFolder + path)) {
+                                this.downloadFile(httpclient, avatarUrl, this.mediaFolder + path);
+                            }
 
                             actress.setHomePage(homePage);
                             actress.setAvatar(path);
                             actress.setName(name);
                             actress.save();
+
+                            actress = ActressManager.getActress(name);
+                        }
+
+                        System.out.println("Actress id = " + actress.getId());
+                        if (!actress.hasVideo(video.getIdentifier())) {
+                            actress.addVideo(video);
                         }
                     }
+                }
 
+                Element sampleContainer = container.getElementById("sample-waterfall");
+                if (sampleContainer != null) {
+                    int count = 0;
+                    ArrayList<String> srcs = new ArrayList<String>();
+                    for (Element sampleEl : sampleContainer.children()) {
+                        String src = sampleEl.select(".sample-box").attr("href");
+
+                        path = "video/sample/" + video.getIdentifier() + "/" + count +  this.getFileExtensionFromUrl(src);
+                        if (!this.isFileExisted(this.mediaFolder + path)) {
+                            this.downloadFile(httpclient, src, this.mediaFolder + path);
+                        }
+
+                        srcs.add(path);
+
+                        count++;
+                    }
+                    video.addSamples(srcs);
                 }
             }
-
         } catch (Exception e) {
             System.out.println("Parse Video Details Error : " + e.getMessage() + e.getLocalizedMessage());
+            e.printStackTrace();
         }
     }
 
     private void downloadFile(CloseableHttpClient httpclient, String url, String path)
     {
+        File f = new File(path);
+        File dir = new File(f.getParent());
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+
         HttpGet httpget = new HttpGet(url);
         try {
             CloseableHttpResponse response = httpclient.execute(httpget);
@@ -176,7 +228,7 @@ public class Process implements Runnable {
                 HttpEntity entity = response.getEntity();
                 InputStream is = entity.getContent();
 
-                FileUtils.copyInputStreamToFile(is, new File(path));
+                FileUtils.copyInputStreamToFile(is, f);
             }
         } catch (Exception e) {
             System.out.println("Download file error: " + e.getMessage());
@@ -187,5 +239,11 @@ public class Process implements Runnable {
     {
         int idx = url.lastIndexOf('.');
         return url.substring(idx);
+    }
+
+    private boolean isFileExisted(String path)
+    {
+        File f = new File(path);
+        return f.exists();
     }
 }
