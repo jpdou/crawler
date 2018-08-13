@@ -1,15 +1,15 @@
 package javmoo;
 
+import com.google.gson.JsonParser;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 
 import java.util.ArrayList;
 
@@ -27,37 +27,26 @@ public class IpManager {
     {
         CloseableHttpClient httpclient = HttpClients.createDefault();
 
-        String url = "http://www.xicidaili.com/nn/";
+        String url = "http://www.xiongmaodaili.com/xiongmao-web/api/glip?secret=fd02774a625abcdc490c6deb5409525f&orderNo=GL201808132234516AQMDTym&count=10&isTxt=0&proxyType=1";
         HttpGet httpget = new HttpGet(url);
-        httpget.addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36");
         try {
             CloseableHttpResponse response = httpclient.execute(httpget);
 
             HttpEntity entity = response.getEntity();
 
             String html = EntityUtils.toString(entity);
-            Document doc = Jsoup.parse(html);
 
-            Element list = doc.getElementById("ip_list");
-            if (list != null) {
-                String ip = "", port = "";
-                for (Element tr : list.select("tr")) {
-                    Elements tds = tr.select("td");
-                    if (tds != null) {
-                        int i = 0;
-                        for (Element td : tds) {
-                            if (i == 1) {
-                                ip = td.text();
-                            } else if (i == 2) {
-                                port = td.text();
-                            }
-                            if (ip.length() > 4 && port.length() > 1) {
-                                this.ips.add(ip + ":" + port);
-                            }
-                            i++;
-                        }
-                    }
-                }
+            System.out.println(html);
+
+            JsonParser parse = new JsonParser();
+            JsonObject json = (JsonObject) parse.parse(html);  //创建jsonObject对象
+
+            JsonArray result = json.get("obj").getAsJsonArray();
+
+            for (JsonElement item : result) {
+                String ip = ((JsonObject) item).get("ip").getAsString();
+                String port = ((JsonObject) item).get("port").getAsString();
+                this.ips.add(ip + ":" + port);
             }
         } catch (Exception e) {
             System.out.println("Request IPs failed. " + e.getMessage());
@@ -67,12 +56,16 @@ public class IpManager {
 
     public void refresh()
     {
+        this.current = 0;
         this.ips.clear();
         this.fetch();
     }
 
     public String next()
     {
+        if (current == this.ips.size()) {
+            this.refresh();
+        }
         return this.ips.get(current++);
     }
 }

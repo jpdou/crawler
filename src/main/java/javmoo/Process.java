@@ -5,6 +5,7 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.config.RequestConfig;
+import org.apache.http.conn.ConnectTimeoutException;
 import org.apache.http.impl.client.*;
 import org.apache.http.client.methods.*;
 import org.apache.http.util.EntityUtils;
@@ -12,6 +13,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.*;
 
 import java.io.*;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 
 public class Process implements Runnable {
@@ -80,43 +82,56 @@ public class Process implements Runnable {
             httpget.setHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36");
 
             try {
-                CloseableHttpResponse response = httpclient.execute(httpget);
+                int i = 3;
+                while (i > 0) {
+                    try {
+                        CloseableHttpResponse response = httpclient.execute(httpget);
 
-                HttpEntity entity = response.getEntity();
+                        HttpEntity entity = response.getEntity();
 
-                String html = EntityUtils.toString(entity);
+                        String html = EntityUtils.toString(entity);
 
-                Document doc = Jsoup.parse(html);
+                        Document doc = Jsoup.parse(html);
 
-                Element content = doc.getElementById("waterfall");
+                        Element content = doc.getElementById("waterfall");
 
-                for (Element element: content.children()) {
+                        for (Element element: content.children()) {
 
-                    String originHref = element.select("a").first().attr("href");
+                            String originHref = element.select("a").first().attr("href");
 
-                    if (originHref.contains(this.baseUrl)) {
-                        originHref = originHref.replaceAll(this.baseUrl, "");
+                            if (originHref.contains(this.baseUrl)) {
+                                originHref = originHref.replaceAll(this.baseUrl, "");
+                            }
+
+                            String thumbnail = element.select("img").first().attr("src");
+                            String identifier = element.select("date").first().html();
+                            String date = element.select("date").last().html();
+
+                            Video video = new Video();
+
+                            video.load(identifier, "identifier");
+
+                            if (video.getId() == 0) {   // video 不存在
+                                video.setIdentifier(identifier);
+                                video.setDate(date);
+                                video.setOriginHref(originHref);
+                                video.setThumbnail(thumbnail);
+                                video.save();
+                                video.load(identifier, "identifier");
+                            }
+                            videos.add(video);
+                        }
+                        response.close();
+                        System.out.println("Got one page...");
+                        break;
+                    } catch (ConnectTimeoutException e) {
+                        e.printStackTrace();
+                    } catch (SocketTimeoutException e) {
+                        e.printStackTrace();
+                    } finally {
+                        i--;
                     }
-
-                    String thumbnail = element.select("img").first().attr("src");
-                    String identifier = element.select("date").first().html();
-                    String date = element.select("date").last().html();
-
-                    Video video = new Video();
-
-                    video.load(identifier, "identifier");
-
-                    if (video.getId() == 0) {   // video 不存在
-                        video.setIdentifier(identifier);
-                        video.setDate(date);
-                        video.setOriginHref(originHref);
-                        video.setThumbnail(thumbnail);
-                        video.save();
-                        video.load(identifier, "identifier");
-                    }
-                    videos.add(video);
                 }
-                response.close();
             } catch (Exception e) {
                 System.out.println("Parse Video From List Error : " + e.getMessage());
                 e.printStackTrace();
@@ -261,8 +276,8 @@ public class Process implements Runnable {
     {
         if (this.requestConfig == null || refresh) {
             RequestConfig.Builder builder = RequestConfig.custom()
-                    .setSocketTimeout(2000)
-                    .setConnectTimeout(2000);
+                    .setSocketTimeout(5000)
+                    .setConnectTimeout(5000);
 
             if (useProxy) {
                 String ip = this.ipManager.next();
