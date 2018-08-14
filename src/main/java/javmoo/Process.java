@@ -1,5 +1,6 @@
 package javmoo;
 
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -27,26 +28,30 @@ public class Process implements Runnable {
 
     private RequestConfig requestConfig;
 
-    private IpManager ipManager;
-
     Process(Task task, String baseUrl, String mediaFolder) {
         this.task = task;
 
         this.baseUrl = baseUrl;
         this.mediaFolder = mediaFolder;
-
-        this.ipManager = new IpManager();
     }
 
     public void run()
     {
         CloseableHttpClient httpclient = HttpClients.createDefault();
 
-        ArrayList<Video> videos = this.parseVideoFromList(httpclient);
-
-        for(Video video : videos) {
-            this.parseVideoDetails(video, httpclient);
+        // 找出之前 信息不完善的 video, 继续解析并保存
+        Video video = new Video();
+        ArrayList<Video> videos = video.getAllUncompletedVideos();
+        for (Video _video : videos) {
+            for (int i = 0; i < 3; i++) {
+                if (this.parseVideoDetails(_video, httpclient)) {
+                    break;
+                }
+            }
         }
+
+        // 解析 video 列表页
+        this.parsePages(httpclient);
 
         this.finished = true;
     }
@@ -64,87 +69,110 @@ public class Process implements Runnable {
         this.thread = thread;
     }
 
-    private ArrayList<Video> parseVideoFromList(CloseableHttpClient httpclient)
+    private void parsePages(CloseableHttpClient httpclient)
     {
-        ArrayList<Video> videos = new ArrayList<Video>();
-        while (true) {
-            int p = this.task.getNext();
-            if (p < 0) {
-                break;
+        int p = this.task.getNext();
+
+        ArrayList<Video> videos = new ArrayList<Video>();   // 从 video list 里解析的 video 集合
+
+        while (p > 0) {
+            for (int i = 0; i < 3; i++) {
+                if( this.parseVideoFromList(httpclient, p, videos) ) {
+                    break;
+                }
             }
-            System.out.println("Start fetch page " + p + " ...");
-            String url = this.baseUrl + "page/" + p;
 
-            System.out.println("Url: " + url);
-
-            HttpGet httpget = new HttpGet(url);
-            httpget.setConfig(this.getRequestConfig(true, true));
-            httpget.setHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36");
-
-            try {
-                int i = 3;
-                while (i > 0) {
-                    try {
-                        CloseableHttpResponse response = httpclient.execute(httpget);
-
-                        HttpEntity entity = response.getEntity();
-
-                        String html = EntityUtils.toString(entity);
-
-                        Document doc = Jsoup.parse(html);
-
-                        Element content = doc.getElementById("waterfall");
-
-                        for (Element element: content.children()) {
-
-                            String originHref = element.select("a").first().attr("href");
-
-                            if (originHref.contains(this.baseUrl)) {
-                                originHref = originHref.replaceAll(this.baseUrl, "");
-                            }
-
-                            String thumbnail = element.select("img").first().attr("src");
-                            String identifier = element.select("date").first().html();
-                            String date = element.select("date").last().html();
-
-                            Video video = new Video();
-
-                            video.load(identifier, "identifier");
-
-                            if (video.getId() == 0) {   // video 不存在
-                                video.setIdentifier(identifier);
-                                video.setDate(date);
-                                video.setOriginHref(originHref);
-                                video.setThumbnail(thumbnail);
-                                video.save();
-                                video.load(identifier, "identifier");
-                            }
-                            videos.add(video);
+            if (videos.size() > 0) {    // 解析正确
+                Boolean pageLoaded = true;
+                for(Video video : videos) {
+                    // 如果 video 信息已完善, 则跳过
+                    video.load(video.getIdentifier(), "identifier");
+                    if (video.isCompleted()) {
+                        continue;
+                    }
+                    pageLoaded = false;
+                    // 每个 video 页面不同 IP 最多尝试 3 次
+                    for (int j =0; j < 3; j++) {
+                        if (this.parseVideoDetails(video, httpclient)) {
+                            break;
                         }
-                        response.close();
-                        System.out.println("Got one page...");
-                        break;
-                    } catch (ConnectTimeoutException e) {
-                        e.printStackTrace();
-                    } catch (SocketTimeoutException e) {
-                        e.printStackTrace();
-                    } finally {
-                        i--;
                     }
                 }
-            } catch (Exception e) {
-                System.out.println("Parse Video From List Error : " + e.getMessage());
-                e.printStackTrace();
+                if (pageLoaded) {   // 这一页上面的所有 video 信息都已经完善了
+                    System.out.println("这一页上面的所有 video 信息都已经完善了.");
+                    break;  // 停止爬取 video 列表页
+                }
+                videos.clear(); // 清空 video 集合
+            } else {
+                System.out.println("Fetch page " + p + "failed. ");
             }
+            p = this.task.getNext();
         }
-
-        return videos;
+        System.out.println("爬取 video 列表页完毕");
     }
 
-    public void parseVideoDetails(Video video, CloseableHttpClient httpclient)
+    private Boolean parseVideoFromList(CloseableHttpClient httpclient, int p, ArrayList<Video> videos)
+    {
+        System.out.println("Start fetch page " + p + " ...");
+        String url = this.baseUrl + "page/" + p;
+
+        System.out.println("Url: " + url);
+
+        HttpGet httpget = new HttpGet(url);
+        httpget.setConfig(this.getRequestConfig());
+        httpget.setHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36");
+
+        try {
+            CloseableHttpResponse response = httpclient.execute(httpget);
+
+            HttpEntity entity = response.getEntity();
+
+            String html = EntityUtils.toString(entity);
+
+            Document doc = Jsoup.parse(html);
+
+            Element content = doc.getElementById("waterfall");
+
+            for (Element element: content.children()) {
+
+                String originHref = element.select("a").first().attr("href");
+
+                if (originHref.contains(this.baseUrl)) {
+                    originHref = originHref.replaceAll(this.baseUrl, "");
+                }
+
+                String thumbnail = element.select("img").first().attr("src");
+                String identifier = element.select("date").first().html();
+                String date = element.select("date").last().html();
+
+                Video video = new Video();
+
+                video.load(identifier, "identifier");
+
+                if (video.getId() == 0) {   // video 不存在
+                    video.setIdentifier(identifier);
+                    video.setDate(date);
+                    video.setOriginHref(originHref);
+                    video.setThumbnail(thumbnail);
+                    video.save();
+                    video.load(identifier, "identifier");
+                }
+                videos.add(video);
+            }
+            response.close();
+            System.out.println("Got one page...");
+            return true;
+        } catch (Exception e) {
+            System.out.println("Parse Video From List Error : " + e.getMessage());
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public Boolean parseVideoDetails(Video video, CloseableHttpClient httpclient)
     {
         HttpGet httpget = new HttpGet(this.baseUrl + video.getOriginHref());
-        httpget.setConfig(this.getRequestConfig(true, true));
+        httpget.setConfig(this.getRequestConfig());
         try {
             CloseableHttpResponse response = httpclient.execute(httpget);
 
@@ -227,17 +255,21 @@ public class Process implements Runnable {
 
                         count++;
                     }
+                    video.removeAllSample();
                     video.addSamples(srcs);
                 }
+                return true;
             }
         } catch (Exception e) {
             System.out.println("Parse Video Details Error : " + e.getMessage());
             e.printStackTrace();
         }
+        return false;
     }
 
     private void downloadFile(CloseableHttpClient httpclient, String url, String path)
     {
+        System.out.println("Start download file: " + url);
         File f = new File(path);
         File dir = new File(f.getParent());
         if (!dir.exists()) {
@@ -245,7 +277,7 @@ public class Process implements Runnable {
         }
 
         HttpGet httpget = new HttpGet(url);
-        httpget.setConfig(this.getRequestConfig(false, false));
+        httpget.setConfig(this.getRequestConfig());
         try {
             CloseableHttpResponse response = httpclient.execute(httpget);
 
@@ -272,20 +304,13 @@ public class Process implements Runnable {
         return f.exists();
     }
 
-    private RequestConfig getRequestConfig(Boolean refresh, Boolean useProxy)
+    private RequestConfig getRequestConfig()
     {
-        if (this.requestConfig == null || refresh) {
-            RequestConfig.Builder builder = RequestConfig.custom()
-                    .setSocketTimeout(5000)
-                    .setConnectTimeout(5000);
-
-            if (useProxy) {
-                String ip = this.ipManager.next();
-                String[] ipWithPort = ip.split(":");
-                HttpHost proxy = new HttpHost(ipWithPort[0], Integer.parseInt(ipWithPort[1]));
-                builder.setProxy(proxy);
-            }
-            this.requestConfig = builder.build();
+        if (this.requestConfig == null) {
+            this.requestConfig = RequestConfig.custom()
+                .setSocketTimeout(10000)
+                .setConnectTimeout(10000)
+                .build();
         }
         return requestConfig;
     }

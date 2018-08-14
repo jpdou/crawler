@@ -11,7 +11,7 @@ abstract class Resource {
     final static int TYPE_DECIMAL = 3;
     final static int TYPE_UNKNOWN = 1000;
 
-    Statement stmt;
+    protected Statement stmt;
 
     protected String table;
     protected String idFiledName = "id";
@@ -44,6 +44,11 @@ abstract class Resource {
     {
         this.data.put(key, value);
         return this;
+    }
+
+    public Boolean hasData(String key)
+    {
+        return this.data.containsKey(key);
     }
 
     public int getId()

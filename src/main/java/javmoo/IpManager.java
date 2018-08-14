@@ -20,14 +20,14 @@ public class IpManager {
 
     IpManager()
     {
-        fetch();
+        //fetch();
     }
 
     public void fetch()
     {
         CloseableHttpClient httpclient = HttpClients.createDefault();
 
-        String url = "http://www.xiongmaodaili.com/xiongmao-web/api/glip?secret=fd02774a625abcdc490c6deb5409525f&orderNo=GL201808132234516AQMDTym&count=10&isTxt=0&proxyType=1";
+        String url = "http://www.xiongmaodaili.com/xiongmao-web/api/glip?secret=ce40baf3a68b79d0d90ea21bc9936562&orderNo=GL201808132234516AQMDTym&count=10&isTxt=0&proxyType=1";
         HttpGet httpget = new HttpGet(url);
         try {
             CloseableHttpResponse response = httpclient.execute(httpget);

@@ -21,11 +21,15 @@ public class Video extends Resource {
         this.fieldTypes.put("poster", Resource.TYPE_STRING);
         this.fieldTypes.put("date", Resource.TYPE_STRING);
         this.fieldTypes.put("identifier", Resource.TYPE_STRING);
+        this.fieldTypes.put("completed", Resource.TYPE_INT);
     }
 
     public void beforeSave() throws Exception {
         if (!this.data.containsKey("identifier")) {
             throw new Exception("Require identifier when saving video");
+        }
+        if (this.isCompleted()) {
+            this.setCompleted(true);
         }
     }
 
@@ -60,6 +64,7 @@ public class Video extends Resource {
                 this.setTitle(rs.getString("title"));
                 this.setDate(rs.getString("date"));
                 this.setOriginHref(rs.getString("origin_href"));
+                this.setCompleted(rs.getBoolean("completed"));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -97,6 +102,50 @@ public class Video extends Resource {
             System.out.println("SQL: " + sql);
             e.printStackTrace();
         }
+    }
+
+    public Boolean isCompleted()
+    {
+        if (this.getId() > 0) {
+            return this.hasData("title") && this.hasData("thumbnail") && this.hasData("poster") && this.hasData("date") && this.hasData("identifier");
+        }
+        return false;
+    }
+
+    private void setCompleted(Boolean bool)
+    {
+        this.data.put("completed", bool ? 1 : 0);
+    }
+
+    public ArrayList<Video> getAllUncompletedVideos()
+    {
+        ArrayList<Video> videos = new ArrayList<Video>();
+
+        String sql = "SELECT * FROM " + this.table + " WHERE completed = 0";
+        try {
+            ResultSet rs = this.stmt.executeQuery(sql);
+            while (rs.next()) {
+                Video video = new Video();
+
+                video.setId(rs.getInt("id"));
+                video.setIdentifier(rs.getString("identifier"));
+                video.setPoster(rs.getString("poster"));
+                video.setThumbnail(rs.getString("thumbnail"));
+                video.setTitle(rs.getString("title"));
+                video.setDate(rs.getString("date"));
+                video.setOriginHref(rs.getString("origin_href"));
+                video.setCompleted(rs.getBoolean("completed"));
+
+                videos.add(video);
+            }
+        } catch (SQLException e) {
+            System.out.println("Load collection SQL Error" + e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("Load collection Error : " + e.getMessage());
+        }
+
+        return videos;
     }
 
     public void setId(int id)
