@@ -19,6 +19,8 @@ import java.util.ArrayList;
 
 public class Process implements Runnable {
 
+    private CloseableHttpClient httpclient;
+
     private String baseUrl;
     private String mediaFolder;
 
@@ -39,6 +41,8 @@ public class Process implements Runnable {
     {
         CloseableHttpClient httpclient = HttpClients.createDefault();
 
+        this.httpclient = httpclient;
+
         // 找出之前 信息不完善的 video, 继续解析并保存
         Video video = new Video();
         ArrayList<Video> videos = video.getAllUncompletedVideos();
@@ -52,6 +56,13 @@ public class Process implements Runnable {
 
         // 解析 video 列表页
         this.parsePages(httpclient);
+
+        // 检查订阅 actresses 有无更新
+        Actress actress = new Actress();
+        ArrayList<Actress> actresses = actress.getSubscribedActresses();
+        for (Actress _actress : actresses) {
+
+        }
 
         this.finished = true;
     }
@@ -67,6 +78,12 @@ public class Process implements Runnable {
 
     public void setThread(Thread thread) {
         this.thread = thread;
+    }
+
+    private void parseActressHomepage(Actress actress)
+    {
+        // todo 解析 actress homepage video 列表, 发现新 video 后保存 video, 对比并更新 actress last_updated 字段
+
     }
 
     private void parsePages(CloseableHttpClient httpclient)

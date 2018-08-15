@@ -126,6 +126,35 @@ public class Actress extends Resource {
         }
     }
 
+    public ArrayList<Actress> getSubscribedActresses()
+    {
+        ArrayList<Actress> actresses = new ArrayList<Actress>();
+        String sql = "SELECT * FROM " + this.table + " WHERE subscribed = 1";
+        try {
+            ResultSet rs = this.stmt.executeQuery(sql);
+            if (rs.next()) {
+                Actress actress = new Actress();
+
+                actress.setId(rs.getInt("id"));
+                actress.setName(rs.getString("name"));
+                actress.setAvatar(rs.getString("avatar"));
+                actress.setHomePage(rs.getString("home_page"));
+                actress.setVideoCount(rs.getInt("video_count"));
+                actress.setOfficeId(rs.getInt("office_id"));
+                actress.setLastUpdated(rs.getString("last_updated"));
+                actress.setSubscribed(rs.getBoolean("subscribed"));
+
+                actresses.add(actress);
+            }
+            rs.close();
+        } catch (Exception e) {
+            System.out.println("Error in SQL: " + e.getMessage());
+            System.out.println("SQL: " + sql);
+            e.printStackTrace();
+        }
+        return actresses;
+    }
+
     public void setId(int id) {
         this.data.put("id", id);
     }

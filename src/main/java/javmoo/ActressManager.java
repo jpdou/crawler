@@ -40,7 +40,7 @@ public class ActressManager {
         return actress;
     }
 
-    public static void add(Actress actress)
+    private static void add(Actress actress)
     {
         actressesById.put(actress.getId(), actress);
         actressesByName.put(actress.getName(), actress);
