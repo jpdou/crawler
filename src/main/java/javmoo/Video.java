@@ -33,6 +33,34 @@ public class Video extends Resource {
         }
     }
 
+    @Override
+    public void afterSave() throws Exception {
+        // 更新 actress last_updated
+        if (this.hasData("date")) {
+            String[] videoDates = this.getDate().split("-");
+            if (videoDates.length >= 3) {
+                ArrayList<Actress> actresses = this.getActresses();
+                for (Actress actress : actresses) {
+                    if (actress.hasData("last_updated")) {
+                        String lastUpdated = actress.getLastUpdated();
+                        if (lastUpdated.length() > 0) {
+                            String[] date = lastUpdated.split("-");
+                            if (date.length >= 3) {
+                                for (int i = 0; i < 3; i++) {
+                                    if (Integer.parseInt(videoDates[i]) > Integer.parseInt(date[i])) {
+                                        actress.setLastUpdated(this.getDate());
+                                        actress.save();
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     public ArrayList<Integer> getActressIds()
     {
         if (this.actressIds == null) {
@@ -146,6 +174,31 @@ public class Video extends Resource {
         }
 
         return videos;
+    }
+
+    public ArrayList<Actress> getActresses()
+    {
+        ArrayList<Actress> actresses = new ArrayList<Actress>();
+
+        String sql = "SELECT actress_video.actress_id FROM " + this.table +
+                " JOIN actress_video " +
+                " ON " + this.table + ".id = actress_video.video_id" +
+                " WHERE " + this.table + ".id = " + this.getId();
+        System.out.println(sql);
+        try {
+            ResultSet rs = this.stmt.executeQuery(sql);
+            while (rs.next()) {
+                int actressId = rs.getInt("actress_id");
+                System.out.println(actressId);
+                Actress actress = new Actress();
+                actress.load(actressId);
+                actresses.add(actress);
+            }
+        } catch (SQLException e) {
+            System.out.println("Load Video Actress ids failed. " + e.getMessage());
+            e.printStackTrace();
+        }
+        return actresses;
     }
 
     public void setId(int id)

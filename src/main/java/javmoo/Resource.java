@@ -62,6 +62,8 @@ abstract class Resource {
 
     public abstract void beforeSave () throws Exception;
 
+    public abstract void afterSave() throws Exception;
+
     public void save()
     {
         try {
@@ -116,9 +118,15 @@ abstract class Resource {
 
         try {
             this.stmt.execute(sql);
+
+            this.afterSave();
+
         } catch (SQLException e) {
             System.out.println("Save failed. " + e.getMessage());
             System.out.println("SQL: " + sql);
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.out.println("After Save Error: " + e.getMessage());
             e.printStackTrace();
         }
     }

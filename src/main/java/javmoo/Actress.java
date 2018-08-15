@@ -50,6 +50,11 @@ public class Actress extends Resource {
         }
     }
 
+    @Override
+    public void afterSave() throws Exception {
+
+    }
+
     protected void afterLoad(ResultSet rs) {
         try {
             if (rs.next()) {

@@ -1,6 +1,5 @@
 package javmoo;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -24,14 +23,11 @@ public class Process implements Runnable {
     private String baseUrl;
     private String mediaFolder;
 
-    private Task task;
-    private Thread thread;
-    private boolean finished = false;
-
     private RequestConfig requestConfig;
 
-    Process(Task task, String baseUrl, String mediaFolder) {
-        this.task = task;
+    Process(String baseUrl, String mediaFolder) {
+
+        httpclient = HttpClients.createDefault();
 
         this.baseUrl = baseUrl;
         this.mediaFolder = mediaFolder;
@@ -39,62 +35,48 @@ public class Process implements Runnable {
 
     public void run()
     {
-        CloseableHttpClient httpclient = HttpClients.createDefault();
-
-        this.httpclient = httpclient;
-
         // 找出之前 信息不完善的 video, 继续解析并保存
         Video video = new Video();
         ArrayList<Video> videos = video.getAllUncompletedVideos();
         for (Video _video : videos) {
             for (int i = 0; i < 3; i++) {
-                if (this.parseVideoDetails(_video, httpclient)) {
+                System.out.println("olooo");
+                if (this.parseVideoDetails(_video)) {
                     break;
                 }
+            }
+            System.out.println("llplplp");
+            try {
+                int sec = (int) (Math.random() * 30);
+                System.out.println("Will sleep " + sec + " seconds... ");
+                Thread.sleep(sec * 1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
 
         // 解析 video 列表页
-        this.parsePages(httpclient);
+        this.parsePages(this.baseUrl, 100);
 
         // 检查订阅 actresses 有无更新
         Actress actress = new Actress();
         ArrayList<Actress> actresses = actress.getSubscribedActresses();
         for (Actress _actress : actresses) {
-
+            this.parsePages(_actress.getHomePage(), 25);
         }
-
-        this.finished = true;
     }
 
-    public boolean isFinished()
+    private void parsePages(String startUrl, int pageCount)
     {
-        return this.finished;
-    }
-
-    public Thread getThread() {
-        return thread;
-    }
-
-    public void setThread(Thread thread) {
-        this.thread = thread;
-    }
-
-    private void parseActressHomepage(Actress actress)
-    {
-        // todo 解析 actress homepage video 列表, 发现新 video 后保存 video, 对比并更新 actress last_updated 字段
-
-    }
-
-    private void parsePages(CloseableHttpClient httpclient)
-    {
-        int p = this.task.getNext();
+        Task task = new Task(pageCount);
+        int p = task.getNext();
 
         ArrayList<Video> videos = new ArrayList<Video>();   // 从 video list 里解析的 video 集合
 
         while (p > 0) {
+            String url = startUrl + "page/" + p;
             for (int i = 0; i < 3; i++) {
-                if( this.parseVideoFromList(httpclient, p, videos) ) {
+                if( this.parseVideoFromList(url, videos) ) {
                     break;
                 }
             }
@@ -108,9 +90,9 @@ public class Process implements Runnable {
                         continue;
                     }
                     pageLoaded = false;
-                    // 每个 video 页面不同 IP 最多尝试 3 次
+                    // 每个 video 页面最多尝试 3 次
                     for (int j =0; j < 3; j++) {
-                        if (this.parseVideoDetails(video, httpclient)) {
+                        if (this.parseVideoDetails(video)) {
                             break;
                         }
                     }
@@ -123,19 +105,16 @@ public class Process implements Runnable {
             } else {
                 System.out.println("Fetch page " + p + "failed. ");
             }
-            p = this.task.getNext();
+            p = task.getNext();
         }
         System.out.println("爬取 video 列表页完毕");
     }
 
-    private Boolean parseVideoFromList(CloseableHttpClient httpclient, int p, ArrayList<Video> videos)
+    private Boolean parseVideoFromList(String listUrl, ArrayList<Video> videos)
     {
-        System.out.println("Start fetch page " + p + " ...");
-        String url = this.baseUrl + "page/" + p;
+        System.out.println("Start fetch page " + listUrl + " ...");
 
-        System.out.println("Url: " + url);
-
-        HttpGet httpget = new HttpGet(url);
+        HttpGet httpget = new HttpGet(listUrl);
         httpget.setConfig(this.getRequestConfig());
         httpget.setHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36");
 
@@ -177,7 +156,7 @@ public class Process implements Runnable {
                 videos.add(video);
             }
             response.close();
-            System.out.println("Got one page...");
+            System.out.println("Got one page. ");
             return true;
         } catch (Exception e) {
             System.out.println("Parse Video From List Error : " + e.getMessage());
@@ -186,9 +165,11 @@ public class Process implements Runnable {
         return false;
     }
 
-    public Boolean parseVideoDetails(Video video, CloseableHttpClient httpclient)
+    public Boolean parseVideoDetails(Video video)
     {
-        HttpGet httpget = new HttpGet(this.baseUrl + video.getOriginHref());
+        String url = this.baseUrl + video.getOriginHref();
+        System.out.println("Start fetch " + url);
+        HttpGet httpget = new HttpGet(url);
         httpget.setConfig(this.getRequestConfig());
         try {
             CloseableHttpResponse response = httpclient.execute(httpget);
@@ -277,6 +258,7 @@ public class Process implements Runnable {
                 }
                 return true;
             }
+            response.close();
         } catch (Exception e) {
             System.out.println("Parse Video Details Error : " + e.getMessage());
             e.printStackTrace();
