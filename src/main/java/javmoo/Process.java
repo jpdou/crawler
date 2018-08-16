@@ -40,12 +40,11 @@ public class Process implements Runnable {
         ArrayList<Video> videos = video.getAllUncompletedVideos();
         for (Video _video : videos) {
             for (int i = 0; i < 3; i++) {
-                System.out.println("olooo");
                 if (this.parseVideoDetails(_video)) {
                     break;
                 }
             }
-            System.out.println("llplplp");
+
             try {
                 int sec = (int) (Math.random() * 30);
                 System.out.println("Will sleep " + sec + " seconds... ");
