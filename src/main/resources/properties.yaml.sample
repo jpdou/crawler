@@ -1,0 +1,21 @@
+developer:
+  crawler:
+    base_url: BASE_URL
+    media_folder: MEDIA_FOLDER
+  database:
+    host: HOST
+    port: 3306
+    dbname: DBNAME
+    user: USER
+    password: PASSWORD
+production:
+  crawler:
+    base_url: BASE_URL
+    media_folder: MEDIA_FOLDER
+  database:
+    host: HOST
+    port: 3306
+    dbname: DBNAME
+    user: USER
+    password: PASSWORD
+

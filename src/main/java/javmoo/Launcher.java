@@ -7,8 +7,12 @@ public class Launcher {
 
     public static void main(String[] args)
     {
-        String baseUrl = "https://javmoo.com/cn/";
-        String mediaFolder = "C:/var/www/demo/media/";
+        String evn = args[0];
+
+        YamlReader yamlReader = new YamlReader(evn);
+
+        String baseUrl = (String) yamlReader.get("crawler/base_url");
+        String mediaFolder = (String) yamlReader.get("crawler/media_folder");
 
         while(true) {
             long startAt = System.currentTimeMillis();
