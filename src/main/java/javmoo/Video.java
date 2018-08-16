@@ -17,7 +17,6 @@ public class Video extends Resource {
         this.fieldTypes.put("id", Resource.TYPE_INT);
         this.fieldTypes.put("origin_href", Resource.TYPE_STRING);
         this.fieldTypes.put("title", Resource.TYPE_STRING);
-        this.fieldTypes.put("thumbnail", Resource.TYPE_STRING);
         this.fieldTypes.put("poster", Resource.TYPE_STRING);
         this.fieldTypes.put("date", Resource.TYPE_STRING);
         this.fieldTypes.put("identifier", Resource.TYPE_STRING);
@@ -55,6 +54,9 @@ public class Video extends Resource {
                                 }
                             }
                         }
+                    } else {
+                        actress.setLastUpdated(this.getDate());
+                        actress.save();
                     }
                 }
             }
@@ -88,7 +90,6 @@ public class Video extends Resource {
                 this.setId(rs.getInt("id"));
                 this.setIdentifier(rs.getString("identifier"));
                 this.setPoster(rs.getString("poster"));
-                this.setThumbnail(rs.getString("thumbnail"));
                 this.setTitle(rs.getString("title"));
                 this.setDate(rs.getString("date"));
                 this.setOriginHref(rs.getString("origin_href"));
@@ -135,7 +136,7 @@ public class Video extends Resource {
     public Boolean isCompleted()
     {
         if (this.getId() > 0) {
-            return this.hasData("title") && this.hasData("thumbnail") && this.hasData("poster") && this.hasData("date") && this.hasData("identifier");
+            return this.hasData("title") && this.hasData("poster") && this.hasData("identifier");
         }
         return false;
     }
@@ -158,7 +159,6 @@ public class Video extends Resource {
                 video.setId(rs.getInt("id"));
                 video.setIdentifier(rs.getString("identifier"));
                 video.setPoster(rs.getString("poster"));
-                video.setThumbnail(rs.getString("thumbnail"));
                 video.setTitle(rs.getString("title"));
                 video.setDate(rs.getString("date"));
                 video.setOriginHref(rs.getString("origin_href"));
@@ -228,14 +228,6 @@ public class Video extends Resource {
 
     public void setIdentifier(String identifier) {
         this.data.put("identifier", identifier);
-    }
-
-    public String getThumbnail() {
-        return (String) this.data.get("thumbnail");
-    }
-
-    public void setThumbnail(String thumbnail) {
-        this.data.put("thumbnail", thumbnail);
     }
 
     public String getPoster() {

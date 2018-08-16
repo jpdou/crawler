@@ -45,13 +45,7 @@ public class Process implements Runnable {
                 }
             }
 
-            try {
-                int sec = (int) (Math.random() * 30);
-                System.out.println("Will sleep " + sec + " seconds... ");
-                Thread.sleep(sec * 1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            this.wait((int) (Math.random() * 30)); // 随机暂停 0 ~ 30 秒
         }
 
         // 解析 video 列表页
@@ -94,6 +88,7 @@ public class Process implements Runnable {
                         if (this.parseVideoDetails(video)) {
                             break;
                         }
+                        this.wait((int)(Math.random() * 15));
                     }
                 }
                 if (pageLoaded) {   // 这一页上面的所有 video 信息都已经完善了
@@ -104,6 +99,9 @@ public class Process implements Runnable {
             } else {
                 System.out.println("Fetch page " + p + "failed. ");
             }
+
+            this.wait((int) (Math.random() * 15));
+
             p = task.getNext();
         }
         System.out.println("爬取 video 列表页完毕");
@@ -136,7 +134,6 @@ public class Process implements Runnable {
                     originHref = originHref.replaceAll(this.baseUrl, "");
                 }
 
-                String thumbnail = element.select("img").first().attr("src");
                 String identifier = element.select("date").first().html();
                 String date = element.select("date").last().html();
 
@@ -145,10 +142,10 @@ public class Process implements Runnable {
                 video.load(identifier, "identifier");
 
                 if (video.getId() == 0) {   // video 不存在
+                    System.out.println("New video " + video.getIdentifier());
                     video.setIdentifier(identifier);
                     video.setDate(date);
                     video.setOriginHref(originHref);
-                    video.setThumbnail(thumbnail);
                     video.save();
                     video.load(identifier, "identifier");
                 }
@@ -167,7 +164,7 @@ public class Process implements Runnable {
     public Boolean parseVideoDetails(Video video)
     {
         String url = this.baseUrl + video.getOriginHref();
-        System.out.println("Start fetch " + url);
+        System.out.println("Start fetch video detail: " + url);
         HttpGet httpget = new HttpGet(url);
         httpget.setConfig(this.getRequestConfig());
         try {
@@ -185,16 +182,9 @@ public class Process implements Runnable {
                 String title = container.select("h3").text();
                 video.setTitle(title);
 
-                // thumbnail
-                String path = "video/thumbnail/" + video.getIdentifier() + this.getFileExtensionFromUrl(video.getThumbnail());
-                if (!this.isFileExisted(this.mediaFolder + path)) {
-                    this.downloadFile(httpclient, video.getThumbnail(), this.mediaFolder + path);
-                }
-                video.setThumbnail(path);
-
                 // poster
                 String posterUrl = container.select(".movie>div.screencap>a>img").attr("src");
-                path = "video/poster/" + video.getIdentifier() + this.getFileExtensionFromUrl(posterUrl);
+                String path = "video/poster/" + video.getIdentifier() + this.getFileExtensionFromUrl(posterUrl);
                 if (!this.isFileExisted(this.mediaFolder + path)) {
                     this.downloadFile(httpclient, posterUrl, this.mediaFolder + path);
                 }
@@ -212,7 +202,7 @@ public class Process implements Runnable {
 
                         actress = ActressManager.getActress(name);
                         if (actress == null) {
-                            System.out.println("Actress is not existed: " + name);
+                            System.out.println("New actress: " + name);
                             actress = new Actress();
                             String homePage = avatarContainer.select("a").attr("href");
                             String avatarUrl = avatarContainer.select("img").attr("src");
@@ -229,7 +219,6 @@ public class Process implements Runnable {
                             actress = ActressManager.getActress(name);
                         }
 
-                        System.out.println("Actress id = " + actress.getId());
                         if (!actress.hasVideo(video.getIdentifier())) {
                             actress.addVideo(video);
                         }
@@ -311,5 +300,15 @@ public class Process implements Runnable {
                 .build();
         }
         return requestConfig;
+    }
+
+    private void wait(int sec)
+    {
+        try {
+            System.out.println("Will sleep " + sec + " seconds... ");
+            Thread.sleep(sec * 1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }
