@@ -7,9 +7,11 @@ import java.util.Map;
 
 public class YamlReader {
 
+    private static YamlReader instance;
+
     private Map data;
 
-    YamlReader(String env)
+    private YamlReader(String env)
     {
         InputStream input = null;
         try {
@@ -21,6 +23,16 @@ public class YamlReader {
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
+    }
+
+    public static void initialize(String env)
+    {
+        YamlReader.instance = new YamlReader(env);
+    }
+
+    public static YamlReader getInstance()
+    {
+        return YamlReader.instance;
     }
 
     public Object get(String path)

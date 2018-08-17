@@ -45,7 +45,7 @@ public class Process implements Runnable {
                 }
             }
 
-            this.wait((int) (Math.random() * 30)); // 随机暂停 0 ~ 30 秒
+            this.wait((int) (Math.random() * 20)); // 随机暂停 0 ~ 30 秒
         }
 
         // 解析 video 列表页

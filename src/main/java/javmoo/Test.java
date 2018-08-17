@@ -14,7 +14,6 @@ import org.jsoup.nodes.Document;
 public class Test {
     public static void main(String[] args)
     {
-        YamlReader yamlReader = new YamlReader("developer");
-        System.out.println(yamlReader.get("database/dbname"));
+
     }
 }
