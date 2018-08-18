@@ -185,9 +185,7 @@ public class Process implements Runnable {
                 // poster
                 String posterUrl = container.select(".movie>div.screencap>a>img").attr("src");
                 String path = "video/poster/" + video.getIdentifier() + this.getFileExtensionFromUrl(posterUrl);
-                if (!this.isFileExisted(this.mediaFolder + path)) {
-                    this.downloadFile(httpclient, posterUrl, this.mediaFolder + path);
-                }
+                this.downloadFile(httpclient, posterUrl, this.mediaFolder + path);
                 video.setPoster(path);
 
                 video.save();
@@ -204,12 +202,10 @@ public class Process implements Runnable {
                         if (actress == null) {
                             System.out.println("New actress: " + name);
                             actress = new Actress();
-                            String homePage = avatarContainer.select("a").attr("href");
-                            String avatarUrl = avatarContainer.select("img").attr("src");
+                            String homePage = box.attr("href");
+                            String avatarUrl = box.select("img").attr("src");
                             path = "actress/avatar/" + name + this.getFileExtensionFromUrl(avatarUrl);
-                            if (this.isFileExisted(this.mediaFolder + path)) {
-                                this.downloadFile(httpclient, avatarUrl, this.mediaFolder + path);
-                            }
+                            this.downloadFile(httpclient, avatarUrl, this.mediaFolder + path);
 
                             actress.setHomePage(homePage);
                             actress.setAvatar(path);
@@ -233,9 +229,7 @@ public class Process implements Runnable {
                         String src = sampleEl.select(".sample-box").attr("href");
 
                         path = "video/sample/" + video.getIdentifier() + "/" + count +  this.getFileExtensionFromUrl(src);
-                        if (!this.isFileExisted(this.mediaFolder + path)) {
-                            this.downloadFile(httpclient, src, this.mediaFolder + path);
-                        }
+                        this.downloadFile(httpclient, src, this.mediaFolder + path);
 
                         srcs.add(path);
 
@@ -256,6 +250,10 @@ public class Process implements Runnable {
 
     private void downloadFile(CloseableHttpClient httpclient, String url, String path)
     {
+        if (this.isFileExisted(path)) {
+            return;
+        }
+
         System.out.println("Start download file: " + url);
         File f = new File(path);
         File dir = new File(f.getParent());
