@@ -3,11 +3,10 @@ package javmoo;
 import java.sql.*;
 import java.util.Map;
 
-public class Conn {
+public class Adapter {
 
-    private static Statement stmt;
+    private static Connection conn;
 
-    private static final String JDBC_DRIVER = "com.mysql.jdbc.Driver";
     private static final String DB_URL = "jdbc:mysql://{host}:{port}/{dbname}?serverTimezone=GMT%2B8&useSSL=false&autoReconnect=true";
 
     private static void initialize()
@@ -30,9 +29,7 @@ public class Conn {
             String pass = (String) databaseProperties.get("password");
 
             // 打开链接
-            Connection conn = DriverManager.getConnection(dbUrl,user,pass);
-
-            stmt = conn.createStatement();
+            conn = DriverManager.getConnection(dbUrl,user,pass);
         }catch(SQLException se){
             // 处理 JDBC 错误
             System.out.println("Connect MySQL failed. " + se.getMessage());
@@ -43,11 +40,11 @@ public class Conn {
         }
     }
 
-    public static Statement getInstance()
+    public static Connection getConn()
     {
-        if (stmt == null) {
+        if (conn == null) {
             initialize();
         }
-        return stmt;
+        return conn;
     }
 }

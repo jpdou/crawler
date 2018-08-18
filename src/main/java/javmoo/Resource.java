@@ -11,7 +11,7 @@ abstract class Resource {
     final static int TYPE_DECIMAL = 3;
     final static int TYPE_UNKNOWN = 1000;
 
-    protected Statement stmt;
+    protected Connection conn;
 
     protected String table;
     protected String idFiledName = "id";
@@ -23,7 +23,7 @@ abstract class Resource {
     protected HashMap<String, Object> data = new HashMap<String, Object>();
 
     Resource() {
-        this.stmt = Conn.getInstance();
+        this.conn = Adapter.getConn();
 
         this.defineFieldsType();
     }
@@ -48,7 +48,7 @@ abstract class Resource {
 
     public Boolean hasData(String key)
     {
-        return this.data.containsKey(key);
+        return this.data.containsKey(key) && this.data.get(key) != null;
     }
 
     public int getId()
@@ -117,7 +117,7 @@ abstract class Resource {
         }
 
         try {
-            this.stmt.execute(sql);
+            this.conn.createStatement().execute(sql);
 
             this.afterSave();
 
@@ -137,7 +137,7 @@ abstract class Resource {
     {
         String sql = this.getLoadSql(value);
         try {
-            ResultSet rs = this.stmt.executeQuery(sql);
+            ResultSet rs = this.conn.createStatement().executeQuery(sql);
             this.afterLoad(rs);
         } catch (SQLException e) {
             System.out.println("Load SQL Error" + e.getMessage());
@@ -151,7 +151,7 @@ abstract class Resource {
     {
         String sql = this.getLoadSql(value, field);
         try {
-            ResultSet rs = this.stmt.executeQuery(sql);
+            ResultSet rs = this.conn.createStatement().executeQuery(sql);
             this.afterLoad(rs);
         } catch (SQLException e) {
             System.out.println("Load SQL Error" + e.getMessage());
@@ -165,7 +165,7 @@ abstract class Resource {
     {
         String sql = this.getLoadSql(value, field);
         try {
-            ResultSet rs = this.stmt.executeQuery(sql);
+            ResultSet rs = this.conn.createStatement().executeQuery(sql);
             this.afterLoad(rs);
         } catch (SQLException e) {
             System.out.println("Is Existed SQL Error" + e.getMessage());

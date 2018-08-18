@@ -142,7 +142,7 @@ public class Process implements Runnable {
                 video.load(identifier, "identifier");
 
                 if (video.getId() == 0) {   // video 不存在
-                    System.out.println("New video " + video.getIdentifier());
+                    System.out.println("New video " + identifier);
                     video.setIdentifier(identifier);
                     video.setDate(date);
                     video.setOriginHref(originHref);

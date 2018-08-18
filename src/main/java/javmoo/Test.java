@@ -11,9 +11,13 @@ import org.apache.http.util.EntityUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
+import java.util.ArrayList;
+
 public class Test {
     public static void main(String[] args)
     {
+        YamlReader.initialize("developer");
+
 
     }
 }

@@ -30,7 +30,7 @@ public class Actress extends Resource {
             ArrayList<Integer> ids = new ArrayList<Integer>();
             String sql = "SELECT video_id FROM actress_video WHERE actress_id = " + this.getId();
             try {
-                ResultSet rs = this.stmt.executeQuery(sql);
+                ResultSet rs = this.conn.createStatement().executeQuery(sql);
                 while (rs.next()) {
                     ids.add(rs.getInt("video_id"));
                 }
@@ -53,6 +53,30 @@ public class Actress extends Resource {
     @Override
     public void afterSave() throws Exception {
 
+//        更新 actress last_updated
+//        for (Video video : this.getVideos()) {
+//            String[] videoDates = video.getDate().split("-");
+//            if (videoDates.length >= 3) {
+//                if (this.hasData("last_updated")) {
+//                    String lastUpdated = this.getLastUpdated();
+//                    if (lastUpdated.length() > 0) {
+//                        String[] dates = lastUpdated.split("-");
+//                        if (dates.length >= 3) {
+//                            for (int i = 0; i < 3; i++) {
+//                                if (Integer.parseInt(videoDates[i]) > Integer.parseInt(dates[i])) {
+//                                    this.setLastUpdated(video.getDate());
+//                                    this.save();
+//                                    break;
+//                                }
+//                            }
+//                        }
+//                    }
+//                } else {
+//                    this.setLastUpdated(video.getDate());
+//                    this.save();
+//                }
+//            }
+//        }
     }
 
     protected void afterLoad(ResultSet rs) {
@@ -72,6 +96,19 @@ public class Actress extends Resource {
         }
     }
 
+    public ArrayList<Video> getVideos()
+    {
+        ArrayList<Video> videos = new ArrayList<Video>();
+
+        for(int videoId : getVideoIds()) {
+            Video video = new Video();
+            video.load(videoId);
+            videos.add(video);
+        }
+
+        return videos;
+    }
+
     public boolean hasVideo(String identifier)
     {
         int count = 0;
@@ -82,7 +119,7 @@ public class Actress extends Resource {
                 "' LIMIT 1";
         try {
 
-            ResultSet rs = this.stmt.executeQuery(sql);
+            ResultSet rs = this.conn.createStatement().executeQuery(sql);
             if (rs.next()) {
                 count = rs.getInt("count(*)");
             }
@@ -103,7 +140,7 @@ public class Actress extends Resource {
                 "JOIN video ON actress_video.video_id = " + id +
                 "LIMIT 1";
         try {
-            ResultSet rs = this.stmt.executeQuery(sql);
+            ResultSet rs = this.conn.createStatement().executeQuery(sql);
             if (rs.next()) {
                 count = rs.getInt("count(*)");
             }
@@ -123,7 +160,7 @@ public class Actress extends Resource {
                 ")";
         try {
 
-            this.stmt.execute(sql);
+            this.conn.createStatement().execute(sql);
         } catch (Exception e) {
             System.out.println("Error in SQL: " + e.getMessage());
             System.out.println("SQL: " + sql);
@@ -136,7 +173,7 @@ public class Actress extends Resource {
         ArrayList<Actress> actresses = new ArrayList<Actress>();
         String sql = "SELECT * FROM " + this.table + " WHERE subscribed = 1";
         try {
-            ResultSet rs = this.stmt.executeQuery(sql);
+            ResultSet rs = this.conn.createStatement().executeQuery(sql);
             if (rs.next()) {
                 Actress actress = new Actress();
 

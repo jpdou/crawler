@@ -34,33 +34,7 @@ public class Video extends Resource {
 
     @Override
     public void afterSave() throws Exception {
-        // 更新 actress last_updated
-        if (this.hasData("date")) {
-            String[] videoDates = this.getDate().split("-");
-            if (videoDates.length >= 3) {
-                ArrayList<Actress> actresses = this.getActresses();
-                for (Actress actress : actresses) {
-                    if (actress.hasData("last_updated")) {
-                        String lastUpdated = actress.getLastUpdated();
-                        if (lastUpdated.length() > 0) {
-                            String[] date = lastUpdated.split("-");
-                            if (date.length >= 3) {
-                                for (int i = 0; i < 3; i++) {
-                                    if (Integer.parseInt(videoDates[i]) > Integer.parseInt(date[i])) {
-                                        actress.setLastUpdated(this.getDate());
-                                        actress.save();
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        actress.setLastUpdated(this.getDate());
-                        actress.save();
-                    }
-                }
-            }
-        }
+
     }
 
     public ArrayList<Integer> getActressIds()
@@ -69,7 +43,7 @@ public class Video extends Resource {
             ArrayList<Integer> ids = new ArrayList<Integer>();
             String sql = "SELECT actress_id FROM actress_video WHERE video_id = " + this.getId();
             try {
-                ResultSet rs = this.stmt.executeQuery(sql);
+                ResultSet rs = this.conn.createStatement().executeQuery(sql);
                 while (rs.next()) {
                     ids.add(rs.getInt("actress_id"));
                 }
@@ -104,7 +78,7 @@ public class Video extends Resource {
     {
         String sql = "DELETE FROM video_sample WHERE video_id = " + this.getId();
         try {
-            this.stmt.execute(sql);
+            this.conn.createStatement().execute(sql);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -125,7 +99,7 @@ public class Video extends Resource {
         sql = sql.replace("{values}", _values);
 
         try {
-            this.stmt.execute(sql);
+            this.conn.createStatement().execute(sql);
         } catch (Exception e) {
             System.out.println("SQL error: " + e.getMessage());
             System.out.println("SQL: " + sql);
@@ -152,7 +126,7 @@ public class Video extends Resource {
 
         String sql = "SELECT * FROM " + this.table + " WHERE completed = 0";
         try {
-            ResultSet rs = this.stmt.executeQuery(sql);
+            ResultSet rs = this.conn.createStatement().executeQuery(sql);
             while (rs.next()) {
                 Video video = new Video();
 
@@ -186,7 +160,7 @@ public class Video extends Resource {
                 " WHERE " + this.table + ".id = " + this.getId();
         System.out.println(sql);
         try {
-            ResultSet rs = this.stmt.executeQuery(sql);
+            ResultSet rs = this.conn.createStatement().executeQuery(sql);
             while (rs.next()) {
                 int actressId = rs.getInt("actress_id");
                 System.out.println(actressId);
