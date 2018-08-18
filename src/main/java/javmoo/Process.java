@@ -55,7 +55,7 @@ public class Process implements Runnable {
         Actress actress = new Actress();
         ArrayList<Actress> actresses = actress.getSubscribedActresses();
         for (Actress _actress : actresses) {
-            this.parsePages(_actress.getHomePage(), 25);
+            this.parsePages(_actress.getHomePage() + "/", 25);
         }
     }
 
@@ -127,6 +127,9 @@ public class Process implements Runnable {
             Element content = doc.getElementById("waterfall");
 
             for (Element element: content.children()) {
+                if (element.select(".movie-box").size() == 0) {
+                    continue;
+                }
 
                 String originHref = element.select("a").first().attr("href");
 
