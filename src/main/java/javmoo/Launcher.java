@@ -5,10 +5,9 @@ public class Launcher {
     public static void main(String[] args)
     {
         String env = args[0];   // 读取命令行都一个参数 env, 可能的值: developer, production
+        String baseDir = args[1]; // 读取命令行都二个参数 baseUrl
 
-        System.out.println(env);
-
-        YamlReader.initialize(env);
+        YamlReader.initialize(baseDir, env);
         YamlReader yamlReader = YamlReader.getInstance();
 
         String baseUrl = (String) yamlReader.get("crawler/base_url");

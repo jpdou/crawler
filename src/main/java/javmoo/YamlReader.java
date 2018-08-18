@@ -11,11 +11,10 @@ public class YamlReader {
 
     private Map data;
 
-    private YamlReader(String env)
+    private YamlReader(String baseDir, String env)
     {
-        InputStream input = null;
         try {
-            input = new FileInputStream(new File("src/main/resources/properties.yaml"));
+            InputStream input = new FileInputStream(new File(baseDir + "properties.yaml"));
             Yaml yaml = new Yaml();
             Map map = yaml.load(input);
 
@@ -25,9 +24,9 @@ public class YamlReader {
         }
     }
 
-    public static void initialize(String env)
+    public static void initialize(String baseDir, String env)
     {
-        YamlReader.instance = new YamlReader(env);
+        YamlReader.instance = new YamlReader(baseDir, env);
     }
 
     public static YamlReader getInstance()
