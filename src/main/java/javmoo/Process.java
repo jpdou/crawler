@@ -92,7 +92,7 @@ public class Process{
                 }
                 if (pageLoaded) {   // 这一页上面的所有 video 信息都已经完善了
                     System.out.println("这一页上面的所有 video 信息都已经完善了.");
-                    break;  // 停止爬取 video 列表页
+                    //break;  // 停止爬取 video 列表页
                 }
                 videos.clear(); // 清空 video 集合
             } else {
@@ -267,11 +267,11 @@ public class Process{
 
     private void wait(int sec)
     {
-        try {
-            System.out.println("Will sleep " + sec + " seconds... ");
-            Thread.sleep(sec * 1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+//        try {
+//            System.out.println("Will sleep " + sec + " seconds... ");
+//            Thread.sleep(sec * 1000);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
     }
 }

@@ -7,7 +7,7 @@ public class Adapter {
 
     private static Connection conn;
 
-    private static final String DB_URL = "jdbc:mysql://{host}:{port}/{dbname}?serverTimezone=GMT%2B8&useSSL=false&autoReconnect=true";
+    private static final String DB_URL = "jdbc:mysql://{host}:{port}/{dbname}?serverTimezone=GMT%2B8&useSSL=false&autoReconnect=true&useUnicode=true&characterEncoding=UTF-8";
 
     private static void initialize()
     {
