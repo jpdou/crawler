@@ -1,5 +1,7 @@
 package javmoo;
 
+import javmoo.http.Downloader;
+import javmoo.http.downloader.Task;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -16,7 +18,7 @@ import java.io.*;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 
-public class Process implements Runnable {
+public class Process{
 
     private CloseableHttpClient httpclient;
 
@@ -61,12 +63,9 @@ public class Process implements Runnable {
 
     private void parsePages(String startUrl, int pageCount)
     {
-        Task task = new Task(pageCount);
-        int p = task.getNext();
-
         ArrayList<Video> videos = new ArrayList<Video>();   // 从 video list 里解析的 video 集合
 
-        while (p > 0) {
+        for (int p = 1; p <= pageCount; p++) {
             String url = startUrl + "page/" + p;
             for (int i = 0; i < 3; i++) {
                 if( this.parseVideoFromList(url, videos) ) {
@@ -101,8 +100,6 @@ public class Process implements Runnable {
             }
 
             this.wait((int) (Math.random() * 15));
-
-            p = task.getNext();
         }
         System.out.println("爬取 video 列表页完毕");
     }
@@ -188,7 +185,7 @@ public class Process implements Runnable {
                 // poster
                 String posterUrl = container.select(".movie>div.screencap>a>img").attr("src");
                 String path = "video/poster/" + video.getIdentifier() + this.getFileExtensionFromUrl(posterUrl);
-                this.downloadFile(httpclient, posterUrl, this.mediaFolder + path);
+                Downloader.add(new Task(posterUrl, this.mediaFolder + path));
                 video.setPoster(path);
 
                 video.save();
@@ -208,7 +205,7 @@ public class Process implements Runnable {
                             String homePage = box.attr("href");
                             String avatarUrl = box.select("img").attr("src");
                             path = "actress/avatar/" + name + this.getFileExtensionFromUrl(avatarUrl);
-                            this.downloadFile(httpclient, avatarUrl, this.mediaFolder + path);
+                            Downloader.add(new Task(avatarUrl, this.mediaFolder + path));
 
                             actress.setHomePage(homePage);
                             actress.setAvatar(path);
@@ -232,7 +229,7 @@ public class Process implements Runnable {
                         String src = sampleEl.select(".sample-box").attr("href");
 
                         path = "video/sample/" + video.getIdentifier() + "/" + count +  this.getFileExtensionFromUrl(src);
-                        this.downloadFile(httpclient, src, this.mediaFolder + path);
+                        Downloader.add(new Task(src, this.mediaFolder + path));
 
                         srcs.add(path);
 
@@ -251,45 +248,10 @@ public class Process implements Runnable {
         return false;
     }
 
-    private void downloadFile(CloseableHttpClient httpclient, String url, String path)
-    {
-        if (this.isFileExisted(path)) {
-            return;
-        }
-
-        System.out.println("Start download file: " + url);
-        File f = new File(path);
-        File dir = new File(f.getParent());
-        if (!dir.exists()) {
-            dir.mkdirs();
-        }
-
-        HttpGet httpget = new HttpGet(url);
-        httpget.setConfig(this.getRequestConfig());
-        try {
-            CloseableHttpResponse response = httpclient.execute(httpget);
-
-            if (HttpStatus.SC_OK == response.getStatusLine().getStatusCode()) {
-                HttpEntity entity = response.getEntity();
-                InputStream is = entity.getContent();
-
-                FileUtils.copyInputStreamToFile(is, f);
-            }
-        } catch (Exception e) {
-            System.out.println("Download file error: " + e.getMessage());
-        }
-    }
-
     private String getFileExtensionFromUrl(String url)
     {
         int idx = url.lastIndexOf('.');
         return url.substring(idx);
-    }
-
-    private boolean isFileExisted(String path)
-    {
-        File f = new File(path);
-        return f.exists();
     }
 
     private RequestConfig getRequestConfig()
