@@ -11,16 +11,19 @@ public class Downloader {
 
     private static ArrayList<Task> tasks;
 
-    private static ArrayList<Process> processes;
+    private static ArrayList<Thread> threads;
 
     static
     {
         Downloader.tasks = new ArrayList<Task>();
 
+        Downloader.threads = new ArrayList<>();
+
         for (int i = 0; i < limit; i++) {
             Process process = new Process(Downloader.tasks);
-            process.run();
-            Downloader.processes.add(process);
+            Thread thread = new Thread(process);
+            thread.start();
+            Downloader.threads.add(thread);
         }
     }
 
