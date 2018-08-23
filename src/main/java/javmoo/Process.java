@@ -1,21 +1,17 @@
 package javmoo;
 
+import javmoo.actress.Manager;
 import javmoo.http.Downloader;
 import javmoo.http.downloader.Task;
-import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpHost;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.config.RequestConfig;
-import org.apache.http.conn.ConnectTimeoutException;
 import org.apache.http.impl.client.*;
 import org.apache.http.client.methods.*;
 import org.apache.http.util.EntityUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.*;
 
-import java.io.*;
-import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 
 public class Process{
@@ -30,6 +26,10 @@ public class Process{
     Process(String baseUrl, String mediaFolder) {
 
         httpclient = HttpClients.createDefault();
+        requestConfig = RequestConfig.custom()
+                .setSocketTimeout(10000)
+                .setConnectTimeout(10000)
+                .build();
 
         this.baseUrl = baseUrl;
         this.mediaFolder = mediaFolder;
@@ -109,51 +109,55 @@ public class Process{
         System.out.println("Start fetch page " + listUrl + " ...");
 
         HttpGet httpget = new HttpGet(listUrl);
-        httpget.setConfig(this.getRequestConfig());
+        httpget.setConfig(requestConfig);
         httpget.setHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36");
 
         try {
             CloseableHttpResponse response = httpclient.execute(httpget);
 
-            HttpEntity entity = response.getEntity();
+            if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+                HttpEntity entity = response.getEntity();
 
-            String html = EntityUtils.toString(entity);
+                String html = EntityUtils.toString(entity);
 
-            Document doc = Jsoup.parse(html);
+                Document doc = Jsoup.parse(html);
 
-            Element content = doc.getElementById("waterfall");
+                Element content = doc.getElementById("waterfall");
 
-            for (Element element: content.children()) {
-                if (element.select(".movie-box").size() == 0) {
-                    continue;
-                }
+                for (Element element: content.children()) {
+                    if (element.select(".movie-box").size() == 0) {
+                        continue;
+                    }
 
-                String originHref = element.select("a").first().attr("href");
+                    String originHref = element.select("a").first().attr("href");
 
-                if (originHref.contains(this.baseUrl)) {
-                    originHref = originHref.replaceAll(this.baseUrl, "");
-                }
+                    if (originHref.contains(this.baseUrl)) {
+                        originHref = originHref.replaceAll(this.baseUrl, "");
+                    }
 
-                String identifier = element.select("date").first().html();
-                String date = element.select("date").last().html();
+                    String identifier = element.select("date").first().html();
+                    String date = element.select("date").last().html();
 
-                Video video = new Video();
+                    Video video = new Video();
 
-                video.load(identifier, "identifier");
-
-                if (video.getId() == 0) {   // video 不存在
-                    System.out.println("New video " + identifier);
-                    video.setIdentifier(identifier);
-                    video.setDate(date);
-                    video.setOriginHref(originHref);
-                    video.save();
                     video.load(identifier, "identifier");
+
+                    if (video.getId() == 0) {   // video 不存在
+                        System.out.println("New video " + identifier);
+                        video.setIdentifier(identifier);
+                        video.setDate(date);
+                        video.setOriginHref(originHref);
+                        video.save();
+                        video.load(identifier, "identifier");
+                    }
+                    videos.add(video);
                 }
-                videos.add(video);
+                response.close();
+                System.out.println("Got one page. ");
+                return true;
+            } else {
+                System.out.println("Fetch page failed. ");
             }
-            response.close();
-            System.out.println("Got one page. ");
-            return true;
         } catch (Exception e) {
             System.out.println("Parse Video From List Error : " + e.getMessage());
             e.printStackTrace();
@@ -166,7 +170,7 @@ public class Process{
         String url = this.baseUrl + video.getOriginHref();
         System.out.println("Start fetch video detail: " + url);
         HttpGet httpget = new HttpGet(url);
-        httpget.setConfig(this.getRequestConfig());
+        httpget.setConfig(requestConfig);
         try {
             CloseableHttpResponse response = httpclient.execute(httpget);
 
@@ -198,7 +202,7 @@ public class Process{
                     for (Element box : avatarContainer.children()) {
                         String name = box.select(">span").text();
 
-                        actress = ActressManager.getActress(name);
+                        actress = Manager.getActress(name);
                         if (actress == null) {
                             System.out.println("New actress: " + name);
                             actress = new Actress();
@@ -212,7 +216,7 @@ public class Process{
                             actress.setName(name);
                             actress.save();
 
-                            actress = ActressManager.getActress(name);
+                            actress = Manager.getActress(name);
                         }
 
                         if (!actress.hasVideo(video.getIdentifier())) {
@@ -238,9 +242,11 @@ public class Process{
                     video.removeAllSample();
                     video.addSamples(srcs);
                 }
+                response.close();
                 return true;
+            } else {
+                System.out.println("Fetch Video Details failed. ");
             }
-            response.close();
         } catch (Exception e) {
             System.out.println("Parse Video Details Error : " + e.getMessage());
             e.printStackTrace();
@@ -252,17 +258,6 @@ public class Process{
     {
         int idx = url.lastIndexOf('.');
         return url.substring(idx);
-    }
-
-    private RequestConfig getRequestConfig()
-    {
-        if (this.requestConfig == null) {
-            this.requestConfig = RequestConfig.custom()
-                .setSocketTimeout(10000)
-                .setConnectTimeout(10000)
-                .build();
-        }
-        return requestConfig;
     }
 
     private void wait(int sec)

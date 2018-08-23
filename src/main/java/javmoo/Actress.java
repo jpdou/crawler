@@ -8,7 +8,7 @@ public class Actress extends Resource {
 
     private ArrayList<Integer> videoIds;
 
-    Actress()
+    public Actress()
     {
         this.table = "actress";
     }
@@ -53,30 +53,6 @@ public class Actress extends Resource {
     @Override
     public void afterSave() throws Exception {
 
-//        更新 actress last_updated
-//        for (Video video : this.getVideos()) {
-//            String[] videoDates = video.getDate().split("-");
-//            if (videoDates.length >= 3) {
-//                if (this.hasData("last_updated")) {
-//                    String lastUpdated = this.getLastUpdated();
-//                    if (lastUpdated.length() > 0) {
-//                        String[] dates = lastUpdated.split("-");
-//                        if (dates.length >= 3) {
-//                            for (int i = 0; i < 3; i++) {
-//                                if (Integer.parseInt(videoDates[i]) > Integer.parseInt(dates[i])) {
-//                                    this.setLastUpdated(video.getDate());
-//                                    this.save();
-//                                    break;
-//                                }
-//                            }
-//                        }
-//                    }
-//                } else {
-//                    this.setLastUpdated(video.getDate());
-//                    this.save();
-//                }
-//            }
-//        }
     }
 
     protected void afterLoad(ResultSet rs) {
@@ -171,7 +147,9 @@ public class Actress extends Resource {
     public ArrayList<Actress> getSubscribedActresses()
     {
         ArrayList<Actress> actresses = new ArrayList<Actress>();
-        String sql = "SELECT * FROM " + this.table + " WHERE subscribed = 1";
+        String sql = "SELECT t.* FROM " + this.table + " as t " +
+                "JOIN user_subscribed_actress as subscriber ON t.id = subscriber.actress_id " +
+                "GROUP BY t.id";
         try {
             ResultSet rs = this.conn.createStatement().executeQuery(sql);
             if (rs.next()) {
