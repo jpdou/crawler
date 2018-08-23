@@ -6,6 +6,10 @@ public class Task {
 
     private String savePath;
 
+    private int failedTimes = 0;
+
+    public static final int failedTimeLimit = 3;
+
     public Task(String link, String savePath)
     {
         this.link = link;
@@ -18,5 +22,13 @@ public class Task {
 
     public String getSavePath() {
         return savePath;
+    }
+
+    public int getFailedTimes() {
+        return failedTimes;
+    }
+
+    public void increaseFailedTimes() {
+        this.failedTimes++;
     }
 }

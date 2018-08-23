@@ -24,14 +24,18 @@ public class Process implements Runnable {
     {
         this.tasks = tasks;
         this.httpclient = HttpClients.createDefault();
+        this.requestConfig = RequestConfig.custom()
+                .setSocketTimeout(10000)
+                .setConnectTimeout(10000)
+                .build();
     }
 
     @Override
     public void run() {
         while (true) {
-            if (this.tasks.size() > 0) {
-                Task task = this.tasks.remove(0);
-                this.downloadFile(httpclient, task.getLink(), task.getSavePath());
+            Task task = this.nextTask();
+            if (task != null) {
+                this.downloadFile(task);
             } else {
                 try {
                     Thread.sleep(1000);
@@ -42,8 +46,19 @@ public class Process implements Runnable {
         }
     }
 
-    private void downloadFile(CloseableHttpClient httpclient, String url, String path)
+    synchronized private Task nextTask()
     {
+        if (this.tasks.size() > 0) {
+            return this.tasks.remove(0);
+        }
+        return null;
+    }
+
+    private void downloadFile(Task task)
+    {
+        String url = task.getLink();
+        String path = task.getSavePath();
+
         if (this.isFileExisted(path)) {
             return;
         }
@@ -56,7 +71,7 @@ public class Process implements Runnable {
         }
 
         HttpGet httpget = new HttpGet(url);
-        httpget.setConfig(this.getRequestConfig());
+        httpget.setConfig(requestConfig);
         try {
             CloseableHttpResponse response = httpclient.execute(httpget);
 
@@ -65,9 +80,14 @@ public class Process implements Runnable {
                 InputStream is = entity.getContent();
 
                 FileUtils.copyInputStreamToFile(is, f);
+            } else if (task.getFailedTimes() < Task.failedTimeLimit){
+                this.retry(task);
             }
         } catch (Exception e) {
             System.out.println("Download file error: " + e.getMessage());
+            if (task.getFailedTimes() < Task.failedTimeLimit){
+                this.retry(task);
+            }
         }
     }
 
@@ -77,14 +97,13 @@ public class Process implements Runnable {
         return f.exists();
     }
 
-    private RequestConfig getRequestConfig()
+    /**
+     * 下载失败的任务重新加入下载队列
+     * @param task 下载任务
+     */
+    private void retry(Task task)
     {
-        if (this.requestConfig == null) {
-            this.requestConfig = RequestConfig.custom()
-                    .setSocketTimeout(10000)
-                    .setConnectTimeout(10000)
-                    .build();
-        }
-        return requestConfig;
+        task.increaseFailedTimes();
+        this.tasks.add(task);
     }
 }
