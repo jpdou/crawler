@@ -55,8 +55,9 @@ public class Process{
 
         // 检查订阅 actresses 有无更新
         Actress actress = new Actress();
-        ArrayList<Actress> actresses = actress.getSubscribedActresses();
+        ArrayList<Actress> actresses = actress.getFavoriteActresses();
         for (Actress _actress : actresses) {
+            System.out.println("Start fetch actress video list: " + _actress.getName());
             this.parsePages(_actress.getHomePage() + "/", 25);
         }
     }
@@ -92,7 +93,7 @@ public class Process{
                 }
                 if (pageLoaded) {   // 这一页上面的所有 video 信息都已经完善了
                     System.out.println("这一页上面的所有 video 信息都已经完善了.");
-                    //break;  // 停止爬取 video 列表页
+                    break;  // 停止爬取 video 列表页
                 }
                 videos.clear(); // 清空 video 集合
             } else {

@@ -21,7 +21,6 @@ public class Actress extends Resource {
         this.fieldTypes.put("video_count", Resource.TYPE_INT);
         this.fieldTypes.put("office_id", Resource.TYPE_INT);
         this.fieldTypes.put("last_updated", Resource.TYPE_STRING);
-        this.fieldTypes.put("subscribed", Resource.TYPE_INT);
     }
 
     public ArrayList<Integer> getVideoIds()
@@ -65,7 +64,6 @@ public class Actress extends Resource {
                 this.setVideoCount(rs.getInt("video_count"));
                 this.setOfficeId(rs.getInt("office_id"));
                 this.setLastUpdated(rs.getString("last_updated"));
-                this.setSubscribed(rs.getBoolean("subscribed"));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -144,15 +142,15 @@ public class Actress extends Resource {
         }
     }
 
-    public ArrayList<Actress> getSubscribedActresses()
+    public ArrayList<Actress> getFavoriteActresses()
     {
         ArrayList<Actress> actresses = new ArrayList<Actress>();
         String sql = "SELECT t.* FROM " + this.table + " as t " +
-                "JOIN user_subscribed_actress as subscriber ON t.id = subscriber.actress_id " +
+                "JOIN user_favorite_actress as favorite ON t.id = favorite.actress_id " +
                 "GROUP BY t.id";
         try {
             ResultSet rs = this.conn.createStatement().executeQuery(sql);
-            if (rs.next()) {
+            while (rs.next()) {
                 Actress actress = new Actress();
 
                 actress.setId(rs.getInt("id"));
@@ -162,7 +160,6 @@ public class Actress extends Resource {
                 actress.setVideoCount(rs.getInt("video_count"));
                 actress.setOfficeId(rs.getInt("office_id"));
                 actress.setLastUpdated(rs.getString("last_updated"));
-                actress.setSubscribed(rs.getBoolean("subscribed"));
 
                 actresses.add(actress);
             }
@@ -225,13 +222,5 @@ public class Actress extends Resource {
 
     public void setLastUpdated(String lastUpdated) {
         this.data.put("last_updated", lastUpdated);
-    }
-
-    public boolean isSubscribed() {
-        return (Integer) this.data.get("subscribed") > 0;
-    }
-
-    public void setSubscribed(boolean subscribed) {
-        this.data.put("subscribed", subscribed ? 1 : 0);
     }
 }
